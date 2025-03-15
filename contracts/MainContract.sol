@@ -73,16 +73,16 @@ contract MainContract is IMainContract, Ownable, ReentrancyGuard , Errors{
     /**
      *  @inheritdoc IMainContract
      */
-    function buy(uint256 _id, uint256 _quantity) external payable nonReentrant {
+    function buy(uint256 _id, uint256 _quantity) external payable {
         
         // Get price and quantity.
         uint256 price = collectionManager.getPrice(_id);
         uint256 cQuantity = collectionManager.getQuantity(_id);
-        require(cQuantity >= _quantity, incorrectQuantity());
+        require(cQuantity >= _quantity,  notEnoughProductsInStock(_quantity, cQuantity));
 
         // Calculate total price and commission.
         uint256 totalPrice = price * _quantity;
-        require(msg.value >= totalPrice, notEnoughFunds());
+        require(msg.value >= totalPrice, NotEnoughFunds(totalPrice, msg.value));
         uint256 fundsForSeller = totalPrice - (totalPrice * commission) / 100;
         uint256 amountOfCommission = totalPrice - fundsForSeller;
     
@@ -104,31 +104,36 @@ contract MainContract is IMainContract, Ownable, ReentrancyGuard , Errors{
      *  @inheritdoc IMainContract
      */
     function batchBuy (uint256[] calldata _ids, uint256[] calldata _quantities) external payable nonReentrant {
-        require(_ids.length == _quantities.length, arraysMisMatch());
+        uint ids = _ids.length;
+        uint quants = _quantities.length;
+        require(ids == quants, arraysMisMatch(ids, quants));
         // Limitation of the number of products in a transaction
-        require(_ids.length <= 25);
+        require(ids <= 25 && ids > 0, inncorectIdInButchBuy(ids));
         // require(!frezeCall[msg.sender]);
 
         // Initialize the total price
         uint totalPrice = 0;
-        for(uint i = 0; i < _ids.length; i++) {
-            require(_quantities[i] > 0, incorrectQuantity());
-            uint256 cQuantity = collectionManager.getQuantity(_ids[i]);
-            require(cQuantity >= _quantities[i], incorrectQuantity());
+        for(uint i = 0; i < ids; i++) {
+            uint quantiti = _quantities[i];
+            uint id = _ids[i];
 
-            uint price = (collectionManager.getPrice(_ids[i]))  * _quantities[i];
+            require(quantiti > 0, incorrectQuantity(1,0));
+            uint256 cQuantity = collectionManager.getQuantity(id);
+            require(cQuantity >= quantiti, notEnoughProductsInStock(quantiti, cQuantity));
+
+            uint price = (collectionManager.getPrice(id)  * quantiti);
             totalPrice += price;
 
-            collectionManager._generatePromoCode(_quantities[i], _ids[i], msg.sender);
-            collectionManager.changeQuantityInStock(_ids[i], collectionManager.getQuantity(_ids[i])-_quantities[i]);
+            collectionManager._generatePromoCode(quantiti, id, msg.sender);
+            collectionManager.changeQuantityInStock(id, collectionManager.getQuantity(id)- quantiti);
 
             // Transfer of funds to the seller
-            payable(collectionManager.getOwnerByCollectionId(_ids[i])).transfer(price - price*commission /100);
+            payable(collectionManager.getOwnerByCollectionId(id)).transfer(price - price*commission /100);
 
             // Emit an event for the product purchased
-            emit productPurchased(msg.sender, _ids[i],  price, _quantities[i]);
+            emit productPurchased(msg.sender, id,  price, quantiti);
         }
-        require(msg.value >= totalPrice, notEnoughFunds());
+        require(msg.value >= totalPrice, NotEnoughFunds(totalPrice, msg.value));
         uint256 fundsForSeller = totalPrice - (totalPrice * commission) / 100;
         uint amountOfCommission = totalPrice - fundsForSeller;
         
