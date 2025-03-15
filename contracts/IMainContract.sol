@@ -30,4 +30,33 @@ interface IMainContract {
      * @param _quantities An array of quantities for each product to purchase.
      */
     function batchBuy(uint256[] calldata _ids, uint256[] calldata _quantities) external payable;
+
+     /**
+     * @notice Retrieves the address of the ERC721 contract for a specific collection ID.
+     * @param _id The ID of the collection.
+     * @return address The address of the ERC721 contract.
+     */
+    function getAddressById(uint256 _id) external view returns (address);
+
+    /**
+     * @notice Retrieves the price of an NFT in a specific collection.
+     * @param _id The ID of the collection.
+     * @return uint256 The price of the NFT.
+     */
+    function getPrice(uint256 _id) external view returns (uint256);
+
+    /**
+     * @notice Retrieves the quantity in stock for a specific collection.
+     * @param _id The ID of the collection.
+     * @return uint256 The quantity in stock.
+     */
+    function getQuantity(uint256 _id) external view returns (uint256);
+
+    /**
+     * @notice Retrieves the owner of a collection given the collection ID.
+     * @param _id The ID of the collection.
+     * @return address The address of the collection owner.
+     */
+    function getOwnerByCollectionId(uint256 _id) external view returns (address);
+
 }

@@ -1,20 +1,22 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {ICollectionManager} from "./IContractManager.sol";
+import {ICollectionManager} from "./ICollectionManager.sol";
 import {NewERC721Collection} from "./NewERC721Collection.sol";
 import {Errors} from "./Errors.sol";
 import {MainContract} from "./MainContract.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
+
 /**
  * @title CollectionManager
- * @author Your Name / Organization
+ * @author Pynex, ivaaaaaaaaaaaa.
  * @notice Manages the creation and retrieval of NFT collections.  This contract implements the
  *         ICollectionManager interface and provides functionality for creating new ERC721 collections,
  *         managing collection information, and generating promotional codes.
  */
 contract CollectionManager is ICollectionManager, Errors, Ownable {
+
     /**
      * @notice Counter for unique collection IDs.
      * @dev This counter is incremented each time a new collection is created to ensure unique IDs.
@@ -25,11 +27,6 @@ contract CollectionManager is ICollectionManager, Errors, Ownable {
      * @notice Maximum length allowed for a collection's name.
      */
     uint256 private constant MAX_NAME_LENGTH = 64;
-
-    /**
-     * @notice Freeze time for the collection
-     */
-    uint256 private constant FREZE_TIME = 10 minutes;
 
     /**
      * @notice Maximum length allowed for a collection's symbol.
@@ -65,7 +62,8 @@ contract CollectionManager is ICollectionManager, Errors, Ownable {
      * @param _id The ID of the collection.
      */
     modifier onlyCreator(uint256 _id) {
-        require(collections[_id].collectionOwner == msg.sender || msg.sender == mainContract, "You are not the creator of this collection");
+        require(collections[_id].collectionOwner == msg.sender || msg.sender == mainContract,
+            onlyCollectionOwner(collections[_id].collectionOwner,mainContract, msg.sender ));
         _;
     }
 
@@ -104,14 +102,14 @@ contract CollectionManager is ICollectionManager, Errors, Ownable {
      * @param initialOwner The address of the initial owner.
      */
     constructor(address initialOwner) Ownable(initialOwner) {
-        require(initialOwner !=address(0),incorrectAddress()) ;
+        require(initialOwner !=address(0),incorrectAddress(address(0))) ;
     }
 
     /**
      *  @inheritdoc ICollectionManager
      */
     function setMainContract (address _mainContract) external onlyOwner {
-        require(_mainContract != address(0), "Main contract address cannot be zero");
+        require(_mainContract != address(0), ZeroMainContractAddress(address(0)));
         mainContract = _mainContract;
     }
 
@@ -125,14 +123,14 @@ contract CollectionManager is ICollectionManager, Errors, Ownable {
         // Check input parameters.
         require(
             bytes(_name).length > 0 && bytes(_name).length < MAX_NAME_LENGTH,
-            incorrectNameLength()
+            incorrectNameLength(1, 0, 64)
         );
         require(
             bytes(_symbol).length > 0 && bytes(_symbol).length < MAX_SYMBOL_LENGTH,
-            incorrectSymbolLength()
+            incorrectSymbolLength(1, 0)
         );
-        require(bytes(_collectionURI).length > 0, incorrectURI());
-        require(_price > 0, incorrectPrice());
+        require(bytes(_collectionURI).length > 0, incorrectURI(1,0));
+        require(_price > 0, incorrectPrice(1,0));
 
         // Deploy a new ERC721NewCollection contract.
         NewERC721Collection collection = new NewERC721Collection(
@@ -145,7 +143,7 @@ contract CollectionManager is ICollectionManager, Errors, Ownable {
         );
         address collectionAddress = address(collection);
 
-        require(collectionAddress != address(0), FailedToDeployContract());
+        require(collectionAddress != address(0), FailedToDeployContract(false, address(0)));
 
         // Save collection info in the collections mapping.
         CollectionInfo memory newCollection = CollectionInfo({
@@ -178,47 +176,54 @@ contract CollectionManager is ICollectionManager, Errors, Ownable {
     /**
      *  @inheritdoc ICollectionManager
      */
-    function getCollectionInfoByCollectionAddress ( address _collection ) external view returns (CollectionInfo memory) {
-        require(_collection != address(0), incorrectAddress());
-        for (uint i = 1; i < idCounter; i++) { // Start from 1 because idCounter starts at 1
-                if (_collection==collections[i].collectionAddress){
-                return collections[i];
-            }
-        }
-        revert collectionNotFound();
+    function getCollectionById (uint _id) external view returns (CollectionInfo memory) {
+        require(collectionExist(_id), collectionNotFound(false));
+        return (collections[_id]);
     }
 
     /**
      *  @inheritdoc ICollectionManager
      */
-    function getCollectionInfoByAddressOwner (address _seller) external view returns (CollectionInfo memory) {
-        require(_seller != address (0), incorrectAddress());
-        for (uint i = 1; i < idCounter; i++) { // Start from 1 because idCounter starts at 1
-                if (_seller==collections[i].collectionOwner){
-                return collections[i];
-            }
-        }
-        revert collectionNotFound();
-    }
+    //  function getCollectionInfoByCollectionAddress ( address _collection ) external view returns (CollectionInfo memory) {
+    //      require(_collection != address(0), incorrectAddress(address(0)));
+    //      for (uint i = 1; i < idCounter; i++) { // Start from 1 because idCounter starts at 1
+    //              if (_collection==collections[i].collectionAddress){
+    //              return collections[i];
+    //          }
+    //      }
+    //      revert collectionNotFound(false);
+    //  }
+
+    /**
+     *  @inheritdoc ICollectionManager
+     */
+    // function getCollectionInfoByAddressOwner (address _seller) external view returns (CollectionInfo memory) {
+    //     require(_seller != address (0), incorrectAddress(address(0)));
+    //     for (uint i = 1; i < idCounter; i++) { // Start from 1 because idCounter starts at 1
+    //             if (_seller==collections[i].collectionOwner){
+    //             return collections[i];
+    //         }
+    //     }
+    //     revert collectionNotFound(false);
+    // }
     
     /**
      *  @inheritdoc ICollectionManager
      */
     function redeemCode (uint _id, bytes8 _code) external  payable {
-         
-        require(collectionExist(_id), collectionNotFound());
+        require(collectionExist(_id), collectionNotFound(false));
 
         // Get collection contract.
-        address _collectionAddress = getAddressById(_id);
+        address _collectionAddress = collections[_id].collectionAddress;
         NewERC721Collection collection = NewERC721Collection(_collectionAddress);
 
         // Check if mainContract is valid.
         require(
             address(this) == collection.mainContract(),
-            incorrectCollectionAddress()
+            incorrectCollectionAddress(address(this), collection.mainContract(), false)
         );
         // Check if promo code is valud.
-        require(_isPromoValid(_code) == true, invalidPromoCode());
+        require(_isPromoValid(_code) == true, invalidPromoCode(false));
 
         // Mint the NFT.
         collection.mint(msg.sender);
@@ -248,30 +253,6 @@ contract CollectionManager is ICollectionManager, Errors, Ownable {
 
     /**
      *  @inheritdoc ICollectionManager
-     */
-    function getAddressById(uint256 _id) public view returns (address) {
-        require(collectionExist(_id),collectionNotFound());
-        return (collections[_id].collectionAddress);
-    }
-
-    /**
-     *  @inheritdoc ICollectionManager
-     */
-    function getPrice(uint256 _id) public view returns (uint256) {
-        require(collectionExist(_id),collectionNotFound());
-        return (collections[_id].price);
-    }
-
-    /**
-     *  @inheritdoc ICollectionManager
-     */
-    function getQuantity(uint256 _id) public view returns (uint256) {
-        require(collectionExist(_id), collectionNotFound());
-        return (collections[_id].quantityInStock);
-    }
-
-    /**
-     *  @inheritdoc ICollectionManager
      *  @dev onlyOwner modifier.
      */
     function getPromo(uint256 _indexOfPromo, address _user)
@@ -280,24 +261,23 @@ contract CollectionManager is ICollectionManager, Errors, Ownable {
         onlyOwner
         returns (bytes8)
     {
-        require(_user != address(0), incorrectAddress());
+        require(_user != address(0), incorrectAddress(address(0)));
         require(
             uniqPromoForUser[_user][_indexOfPromo] != bytes8(0),
-            incorrectIndex()
+            incorrectIndex(bytes8(0), false)
         );
         return (uniqPromoForUser[_user][_indexOfPromo]);
-    }
-
-    function collectionExist (uint _id) public view returns (bool) {
-        return (collections[_id].collectionAddress != address(0));
     }
 
     /**
      *  @inheritdoc ICollectionManager
      */
-    function getOwnerByCollectionId(uint256 _id) public view returns (address) {
-        require(collectionExist(_id),collectionNotFound());
-        return collections[_id].collectionOwner;
+    function collectionExist (uint _id) public view returns (bool) {
+        if(collections[_id].collectionAddress != address(0)) {
+            return true;
+        } else {
+            revert TokenNotExist(address(0));
+        }
     }
 
     /**
@@ -307,7 +287,7 @@ contract CollectionManager is ICollectionManager, Errors, Ownable {
      * @return bool Returns true if the promo code is valid, false otherwise.
      */
     function _isPromoValid(bytes8 _promoCode) internal view returns (bool) {
-        for (uint256 i = 0; i < uniqPromoForUser[msg.sender].length; i++) {
+        for (uint256 i = 0; i < uniqPromoForUser[msg.sender].length; ++i) {
             if (uniqPromoForUser[msg.sender][i] == _promoCode) {
                 return true;
             }
@@ -324,14 +304,14 @@ contract CollectionManager is ICollectionManager, Errors, Ownable {
      * @param _promoCode The promotional code to delete.
      */
     function _deletePromoCode(address _user, bytes8 _promoCode) internal {
-        require(_user != address(0), incorrectAddress());
+        require(_user != address(0), incorrectAddress(address(0)));
         (uint256 _index, bool status) = _findIndexByUserAddress(
             _user,
             _promoCode
         );
 
         if (!status) {
-            revert promoCodeNotFound();
+            revert promoCodeNotFound(false);
         }
 
         // Swap the promo code to be deleted with the last element in the array
@@ -369,9 +349,9 @@ contract CollectionManager is ICollectionManager, Errors, Ownable {
      *  @inheritdoc ICollectionManager
      */
     function _generatePromoCode(uint _amount,uint _id, address _user) public {
-        require(_user != address(0),incorrectAddress());
-        require(msg.sender == address(mainContract),"onlyMainContract!");
-        require(_amount > 0, incorrectQuantity());
+        require(_user != address(0),incorrectAddress(address(0)));
+        require(msg.sender == address(mainContract),onlyMainContract(address(mainContract), msg.sender));
+        require(_amount > 0, incorrectQuantity(1,0));
         uint counter = codesCounter[msg.sender];
         
         for (uint i = 0; i < _amount ; i++) {

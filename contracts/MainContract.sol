@@ -5,10 +5,10 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {Errors} from "./Errors.sol";
 import {IMainContract} from "./IMainContract.sol";
-import {ICollectionManager} from "./IContractManager.sol";
+import {ICollectionManager} from "./ICollectionManager.sol";
 
 /**
- * @title Ma1nContract
+ * @title MainContract
  * @author Pynex, ivaaaaaaaaaaaa.
  * @notice The main contract for handling purchases and commissions. This contract allows users to buy NFTs,
  *         handles commission calculations, and interacts with the CollectionManager contract.
@@ -58,7 +58,7 @@ contract MainContract is IMainContract, Ownable, ReentrancyGuard , Errors{
     constructor(address initialOwner, uint256 _commission, address _collectionManager) Ownable(initialOwner) {
         require(_commission <= 100, "Commission cannot exceed 100%");
         require(_collectionManager != address(0), "cannot be null");
-        require(initialOwner != address(0));
+        require(initialOwner != address(0), incorrectAddress(address(0)));
         collectionManager = ICollectionManager(_collectionManager);
         commission = _commission;
     }
@@ -76,13 +76,13 @@ contract MainContract is IMainContract, Ownable, ReentrancyGuard , Errors{
     function buy(uint256 _id, uint256 _quantity) external payable nonReentrant {
         
         // Get price and quantity.
-        uint256 price = collectionManager.getPrice(_id);
-        uint256 cQuantity = collectionManager.getQuantity(_id);
-        require(cQuantity >= _quantity, incorrectQuantity());
+        uint256 price = getPrice(_id);
+        uint256 cQuantity = getQuantity(_id);
+        require(cQuantity >= _quantity, notEnoughProductsInStock(_quantity, cQuantity));
 
         // Calculate total price and commission.
         uint256 totalPrice = price * _quantity;
-        require(msg.value >= totalPrice, notEnoughFunds());
+        require(msg.value >= totalPrice, NotEnoughFunds(totalPrice, msg.value));
         uint256 fundsForSeller = totalPrice - (totalPrice * commission) / 100;
         uint256 amountOfCommission = totalPrice - fundsForSeller;
     
@@ -94,7 +94,7 @@ contract MainContract is IMainContract, Ownable, ReentrancyGuard , Errors{
         collectionManager.changeQuantityInStock(cQuantity-_quantity, _id);
 
         // Transfer funds for seller and comission for owner.
-        payable(collectionManager.getOwnerByCollectionId(_id)).transfer(fundsForSeller);
+        payable(getOwnerByCollectionId(_id)).transfer(fundsForSeller);
         payable(owner()).transfer(amountOfCommission);
         
         emit productPurchased(msg.sender, _id, price, _quantity);
@@ -104,7 +104,9 @@ contract MainContract is IMainContract, Ownable, ReentrancyGuard , Errors{
      *  @inheritdoc IMainContract
      */
     function batchBuy (uint256[] calldata _ids, uint256[] calldata _quantities) external payable nonReentrant {
-        require(_ids.length == _quantities.length, arraysMisMatch());
+        uint ids = _ids.length;
+        uint quants = _quantities.length;
+        require(_ids.length == _quantities.length, arraysMisMatch(ids, quants));
         // Limitation of the number of products in a transaction
         require(_ids.length <= 25);
         // require(!frezeCall[msg.sender]);
@@ -112,23 +114,25 @@ contract MainContract is IMainContract, Ownable, ReentrancyGuard , Errors{
         // Initialize the total price
         uint totalPrice = 0;
         for(uint i = 0; i < _ids.length; i++) {
-            require(_quantities[i] > 0, incorrectQuantity());
-            uint256 cQuantity = collectionManager.getQuantity(_ids[i]);
-            require(cQuantity >= _quantities[i], incorrectQuantity());
+            uint quantiti = _quantities[i];
+            uint id = _ids[i];
+            require(quantiti > 0, incorrectQuantity(1,0));
+            uint256 cQuantity = getQuantity(id);
+            require(cQuantity >= quantiti, notEnoughProductsInStock(quantiti, cQuantity));
 
-            uint price = (collectionManager.getPrice(_ids[i]))  * _quantities[i];
+            uint price = (getPrice(id))  * quantiti;
             totalPrice += price;
 
-            collectionManager._generatePromoCode(_quantities[i], _ids[i], msg.sender);
-            collectionManager.changeQuantityInStock(_ids[i], collectionManager.getQuantity(_ids[i])-_quantities[i]);
+            collectionManager._generatePromoCode(quantiti, id, msg.sender);
+            collectionManager.changeQuantityInStock(id, getQuantity(id)-quantiti);
 
             // Transfer of funds to the seller
-            payable(collectionManager.getOwnerByCollectionId(_ids[i])).transfer(price - price*commission /100);
+            payable(getOwnerByCollectionId(_ids[i])).transfer(price - price*commission /100);
 
             // Emit an event for the product purchased
             emit productPurchased(msg.sender, _ids[i],  price, _quantities[i]);
         }
-        require(msg.value >= totalPrice, notEnoughFunds());
+        require(msg.value >= totalPrice, NotEnoughFunds(totalPrice, msg.value));
         uint256 fundsForSeller = totalPrice - (totalPrice * commission) / 100;
         uint amountOfCommission = totalPrice - fundsForSeller;
         
@@ -139,5 +143,33 @@ contract MainContract is IMainContract, Ownable, ReentrancyGuard , Errors{
 
         // Transfer commission to the contract owner
         payable(owner()).transfer(amountOfCommission);
+    }
+
+    //////////////////////////////////////////////////////
+    //  get functions
+    //////////////////////////////////////////////////////
+
+    function getQuantity(uint256 _id) public view returns (uint256) {
+        ICollectionManager cm = ICollectionManager(collectionManager);
+        ICollectionManager.CollectionInfo memory collection = cm.getCollectionById(_id);
+        return collection.quantityInStock;
+    }
+
+    function getPrice(uint256 _id) public view returns (uint256) {
+        ICollectionManager cm = ICollectionManager(collectionManager);
+        ICollectionManager.CollectionInfo memory collection = cm.getCollectionById(_id);
+        return collection.price;
+    }
+
+    function getAddressById(uint256 _id) public view returns (address) {
+        ICollectionManager cm = ICollectionManager(collectionManager);
+        ICollectionManager.CollectionInfo memory collection = cm.getCollectionById(_id);
+        return collection.collectionAddress;
+    }
+
+    function getOwnerByCollectionId(uint256 _id) public view returns (address) {
+        ICollectionManager cm = ICollectionManager(collectionManager);
+        ICollectionManager.CollectionInfo memory collection = cm.getCollectionById(_id);
+        return collection.collectionOwner;
     }
 }

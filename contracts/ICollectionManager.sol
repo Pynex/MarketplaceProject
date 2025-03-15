@@ -57,18 +57,25 @@ interface ICollectionManager {
     function setMainContract(address _mainContract) external;
 
     /**
+     * @notice Retrieves collection information based on the collection ID.
+     * @return CollectionInfo Returns a `CollectionInfo` struct containing the collection's details.
+     * @dev This function returns the CollectionInfo struct directly from the collections mapping using the provided ID.
+     */
+    function getCollectionById (uint _id) external view returns (CollectionInfo memory);
+
+    /**
      * @notice Retrieves collection information based on the collection address.
      * @param _collection The address of the ERC721 collection.
      * @return CollectionInfo Returns a `CollectionInfo` struct containing the collection's details.
      */
-    function getCollectionInfoByCollectionAddress(address _collection) external view returns (CollectionInfo memory);
+    // function getCollectionInfoByCollectionAddress(address _collection) external view returns (CollectionInfo memory);
 
     /**
      * @notice Retrieves collection information based on the address of the collection owner.
      * @param _seller The address of the collection owner (seller).
      * @return CollectionInfo Returns a `CollectionInfo` struct containing the collection's details.
      */
-    function getCollectionInfoByAddressOwner(address _seller) external view returns (CollectionInfo memory);
+    // function getCollectionInfoByAddressOwner(address _seller) external view returns (CollectionInfo memory);
 
     /**
      * @notice Redeems a promotional code for a specific collection.
@@ -93,27 +100,6 @@ interface ICollectionManager {
     function changePrice(uint _newPrice, uint _id) external payable;
 
     /**
-     * @notice Retrieves the address of the ERC721 contract for a specific collection ID.
-     * @param _id The ID of the collection.
-     * @return address The address of the ERC721 contract.
-     */
-    function getAddressById(uint256 _id) external view returns (address);
-
-    /**
-     * @notice Retrieves the price of an NFT in a specific collection.
-     * @param _id The ID of the collection.
-     * @return uint256 The price of the NFT.
-     */
-    function getPrice(uint256 _id) external view returns (uint256);
-
-    /**
-     * @notice Retrieves the quantity in stock for a specific collection.
-     * @param _id The ID of the collection.
-     * @return uint256 The quantity in stock.
-     */
-    function getQuantity(uint256 _id) external view returns (uint256);
-
-    /**
      * @notice Retrieves a promotional code for a specific user and index.
      * @param _indexOfPromo The index of the promo code in the user's list of codes.
      * @param _user The address of the user.
@@ -127,13 +113,6 @@ interface ICollectionManager {
      * @return bool Returns true if the collection exists, false otherwise.
      */
     function collectionExist(uint _id) external view returns (bool);
-
-    /**
-     * @notice Retrieves the owner of a collection given the collection ID.
-     * @param _id The ID of the collection.
-     * @return address The address of the collection owner.
-     */
-    function getOwnerByCollectionId(uint256 _id) external view returns (address);
 
     /**
      * @notice Generates a promotional code for a user.
