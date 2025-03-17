@@ -7,7 +7,6 @@ import {Errors} from "./Errors.sol";
 import {MainContract} from "./MainContract.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
-
 /**
  * @title CollectionManager
  * @author Pynex, ivaaaaaaaaaaaa.
@@ -16,12 +15,6 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
  *         managing collection information, and generating promotional codes.
  */
 contract CollectionManager is ICollectionManager, Errors, Ownable {
-
-    /**
-     * @notice Counter for unique collection IDs.
-     * @dev This counter is incremented each time a new collection is created to ensure unique IDs.
-     */
-    uint256 public idCounter = 1;
 
     /**
      * @notice Maximum length allowed for a collection's name.
@@ -39,31 +32,17 @@ contract CollectionManager is ICollectionManager, Errors, Ownable {
      */
     address public mainContract;
 
-    /**
-     * @notice Mapping from collection ID to CollectionInfo.
-     * @dev Stores information about each NFT collection, including its name, symbol, and more.
-     */
-    mapping(uint256 => CollectionInfo) public collections;
+    mapping(address => CollectionInfo) public collections;
 
-    /**
-     * @notice Mapping from user address to an array of promotional codes.
-     * @dev Stores the unique promotional codes generated for each user.
-     */
-    mapping(address => bytes8[]) private uniqPromoForUser;
-
-    /**
-     * @notice Mapping from user address to a counter for generated codes.
-     * @dev Used for generating unique promo codes for each user.
-     */
-    mapping(address => uint) codesCounter;
+    mapping(address => address[]) public collectionsByCreator;
 
     /**
      * @notice Modifier that restricts function execution to the creator of a collection or the main contract.
-     * @param _id The ID of the collection.
+     * @param _collectionAddress The address of the collection.
      */
-    modifier onlyCreator(uint256 _id) {
-        require(collections[_id].collectionOwner == msg.sender || msg.sender == mainContract,
-            onlyCollectionOwner(collections[_id].collectionOwner,mainContract, msg.sender ));
+    modifier onlyCreator(address _collectionAddress) {
+        require(collections[_collectionAddress].collectionOwner == msg.sender || msg.sender == mainContract,
+            onlyCollectionOwner(collections[_collectionAddress].collectionOwner,mainContract, msg.sender ));
         _;
     }
 
@@ -74,7 +53,6 @@ contract CollectionManager is ICollectionManager, Errors, Ownable {
      * @param collectionURI The base URI for the collection's metadata.
      * @param collectionName The name of the collection.
      * @param price The price of each NFT in the collection.
-     * @param id The unique ID of the collection.
      * @param amountOfStock The initial number of NFTs in stock.
      */
     event CollectionCreated(
@@ -83,18 +61,7 @@ contract CollectionManager is ICollectionManager, Errors, Ownable {
         string collectionURI,
         string collectionName,
         uint256 price,
-        uint256 id,
         uint amountOfStock
-    );
-
-    /**
-     * @notice Emitted when a promotional code is successfully used.
-     * @param user The address of the user who used the promo code.
-     * @param collectionAddress The address of the collection for which the promo code was used.
-     */
-    event PromoCodeSuccessfullyUsed(
-        address indexed user,
-        address indexed collectionAddress
     );
 
     /**
@@ -139,7 +106,7 @@ contract CollectionManager is ICollectionManager, Errors, Ownable {
             _collectionURI,
             msg.sender,
             owner(),
-            address(this)
+            mainContract
         );
         address collectionAddress = address(collection);
 
@@ -153,10 +120,11 @@ contract CollectionManager is ICollectionManager, Errors, Ownable {
             collectionURI: _collectionURI,
             price: _price,
             quantityInStock: _quantityInStock,
-            collectionAddress: collectionAddress,
-            id: idCounter
+            collectionAddress: collectionAddress
         });
-        collections[idCounter] = newCollection;
+        collections[collectionAddress] = newCollection;
+        collectionsByCreator[msg.sender].push(collectionAddress);
+
 
         // Emit event.
         emit CollectionCreated(
@@ -165,115 +133,53 @@ contract CollectionManager is ICollectionManager, Errors, Ownable {
             _collectionURI,
             _name,
             _price,
-            idCounter,
             _quantityInStock
         );
+    }
 
-        // Increment after emitting the event
-        idCounter++;
+    function getCollectionOwnerByAddressOwner(address _collectionsOwner) external view returns (CollectionInfo[] memory) {
+        require(_collectionsOwner != address(0));
+
+        address[] memory collectionAddresses = collectionsByCreator[_collectionsOwner];
+        CollectionInfo[] memory result = new CollectionInfo[](collectionAddresses.length);
+        
+        for(uint i = 0; i <collectionAddresses.length; ++i) {
+            address collectionAddress = collectionAddresses[i];
+            result[i] = collections[collectionAddress];
+        }
+        return result;
     }
 
     /**
      *  @inheritdoc ICollectionManager
      */
-    function getCollectionById (uint _id) external view returns (CollectionInfo memory) {
-        require(collectionExist(_id), collectionNotFound(false));
-        return (collections[_id]);
+    function getCollectionByAddress (address _collectionAddress) external view returns (CollectionInfo memory) {
+        require(collectionExist(_collectionAddress), collectionNotFound(false));
+        return (collections[_collectionAddress]);
     }
-
-    /**
-     *  @inheritdoc ICollectionManager
-     */
-    //  function getCollectionInfoByCollectionAddress ( address _collection ) external view returns (CollectionInfo memory) {
-    //      require(_collection != address(0), incorrectAddress(address(0)));
-    //      for (uint i = 1; i < idCounter; i++) { // Start from 1 because idCounter starts at 1
-    //              if (_collection==collections[i].collectionAddress){
-    //              return collections[i];
-    //          }
-    //      }
-    //      revert collectionNotFound(false);
-    //  }
-
-    /**
-     *  @inheritdoc ICollectionManager
-     */
-    // function getCollectionInfoByAddressOwner (address _seller) external view returns (CollectionInfo memory) {
-    //     require(_seller != address (0), incorrectAddress(address(0)));
-    //     for (uint i = 1; i < idCounter; i++) { // Start from 1 because idCounter starts at 1
-    //             if (_seller==collections[i].collectionOwner){
-    //             return collections[i];
-    //         }
-    //     }
-    //     revert collectionNotFound(false);
-    // }
     
     /**
      *  @inheritdoc ICollectionManager
+     *  @dev onlyCreator modifier.
      */
-    function redeemCode (uint _id, bytes8 _code) external  payable {
-        require(collectionExist(_id), collectionNotFound(false));
-
-        // Get collection contract.
-        address _collectionAddress = collections[_id].collectionAddress;
-        NewERC721Collection collection = NewERC721Collection(_collectionAddress);
-
-        // Check if mainContract is valid.
-        require(
-            address(this) == collection.mainContract(),
-            incorrectCollectionAddress(address(this), collection.mainContract(), false)
-        );
-        // Check if promo code is valud.
-        require(_isPromoValid(_code) == true, invalidPromoCode(false));
-
-        // Mint the NFT.
-        collection.mint(msg.sender);
-
-        // Delete promo code for user.
-        _deletePromoCode(msg.sender, _code);
-
-        // Emit event.
-        emit PromoCodeSuccessfullyUsed(msg.sender, _collectionAddress);
+    function changePrice (uint _newPrice,address _collectionAddress) public payable onlyCreator(_collectionAddress) {
+         _updatePrice(_collectionAddress, _newPrice);
     }
 
     /**
      *  @inheritdoc ICollectionManager
      *  @dev onlyCreator modifier.
      */
-    function changePrice (uint _newPrice,uint _id) public payable onlyCreator(_id) {
-         _updatePrice(_id, _newPrice);
+    function changeQuantityInStock (uint _newQuantity,address _collectionAddress) external payable onlyCreator(_collectionAddress) {
+        _updateQuantity(_collectionAddress, _newQuantity);
     }
 
-    /**
-     *  @inheritdoc ICollectionManager
-     *  @dev onlyCreator modifier.
-     */
-    function changeQuantityInStock (uint _newQuantity,uint _id) external payable onlyCreator(_id) {
-        _updateQuantity(_id, _newQuantity);
-    }
-
-    /**
-     *  @inheritdoc ICollectionManager
-     *  @dev onlyOwner modifier.
-     */
-    function getPromo(uint256 _indexOfPromo, address _user)
-        public
-        view
-        onlyOwner
-        returns (bytes8)
-    {
-        require(_user != address(0), incorrectAddress(address(0)));
-        require(
-            uniqPromoForUser[_user][_indexOfPromo] != bytes8(0),
-            incorrectIndex(bytes8(0), false)
-        );
-        return (uniqPromoForUser[_user][_indexOfPromo]);
-    }
 
     /**
      *  @inheritdoc ICollectionManager
      */
-    function collectionExist (uint _id) public view returns (bool) {
-        if(collections[_id].collectionAddress != address(0)) {
+    function collectionExist (address _collectionAddress) public view returns (bool) {
+        if(collections[_collectionAddress].collectionAddress != address(0)) {
             return true;
         } else {
             revert TokenNotExist(address(0));
@@ -281,105 +187,22 @@ contract CollectionManager is ICollectionManager, Errors, Ownable {
     }
 
     /**
-     * @notice Checks if a given promo code is valid for the message sender.
-     * @dev Iterates through the user's list of promo codes to find a match.
-     * @param _promoCode The promo code to validate.
-     * @return bool Returns true if the promo code is valid, false otherwise.
-     */
-    function _isPromoValid(bytes8 _promoCode) internal view returns (bool) {
-        for (uint256 i = 0; i < uniqPromoForUser[msg.sender].length; ++i) {
-            if (uniqPromoForUser[msg.sender][i] == _promoCode) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * @notice Deletes a promotional code for a specific user.
-     * @dev  This function removes a promo code from a user's list.  It swaps the promo code
-     *       to be deleted with the last element in the array and then removes the last element.
-     *       The function reverts if the user address is zero or if the promo code is not found for the specified user.
-     * @param _user The address of the user whose promo code should be deleted.
-     * @param _promoCode The promotional code to delete.
-     */
-    function _deletePromoCode(address _user, bytes8 _promoCode) internal {
-        require(_user != address(0), incorrectAddress(address(0)));
-        (uint256 _index, bool status) = _findIndexByUserAddress(
-            _user,
-            _promoCode
-        );
-
-        if (!status) {
-            revert promoCodeNotFound(false);
-        }
-
-        // Swap the promo code to be deleted with the last element in the array
-        uniqPromoForUser[_user][_index] = uniqPromoForUser[_user][
-            uniqPromoForUser[_user].length - 1
-        ];
-        // Remove the last element (which is now a duplicate)
-        uniqPromoForUser[_user].pop();
-    }
-
-    /**
-     * @notice Finds the index of a promo code in a user's list of promo codes.
-     * @dev Iterates through the user's `uniqPromoForUser` array to find the index of the specified promo code.
-     * @param _user The address of the user whose promo code list is being searched.
-     * @param _promoCode The promo code to find.
-     * @return (uint256, bool) Returns a tuple: the index of the promo code if found,
-     *          and a boolean indicating whether the promo code was found (true) or not (false).
-     *          If the promo code is not found, the index will be 0 and the boolean will be false.
-     */
-    function _findIndexByUserAddress(address _user, bytes8 _promoCode)
-        internal
-        view
-        returns (uint256, bool)
-    {
-        bytes8[] storage promoCodes = uniqPromoForUser[_user];
-        for (uint256 i = 0; i < promoCodes.length; i++) {
-            if (promoCodes[i] == _promoCode) {
-                return (i, true);
-            }
-        }
-        return (0, false);
-    }
-
-    /**
-     *  @inheritdoc ICollectionManager
-     */
-    function _generatePromoCode(uint _amount,uint _id, address _user) public {
-        require(_user != address(0),incorrectAddress(address(0)));
-        require(msg.sender == address(mainContract),onlyMainContract(address(mainContract), msg.sender));
-        require(_amount > 0, incorrectQuantity(1,0));
-        uint counter = codesCounter[msg.sender];
-        
-        for (uint i = 0; i < _amount ; i++) {
-        bytes8 random = bytes8(
-            keccak256(abi.encode((blockhash(block.number - i)),block.timestamp,counter,msg.sender,_id, i, tx.origin,
-            block.prevrandao)));
-        uniqPromoForUser[_user].push(random);
-        codesCounter[msg.sender]++;
-        }
-    }
-
-    /**
      * @notice Updates the price of an NFT collection.
      * @dev Modifies the `price` field of a collection in the `collections` mapping.  This function is intended for internal use only.
-     * @param _id The ID of the collection to update.
+     * @param _collectionAddress The address of the collection to update.
      * @param _newPrice The new price of the collection.
      */
-    function _updatePrice(uint256 _id, uint256 _newPrice) private {
-        collections[_id].price = _newPrice;
+    function _updatePrice(address _collectionAddress, uint256 _newPrice) private {
+        collections[_collectionAddress].price = _newPrice;
     }
 
     /**
      * @notice Updates the quantity in stock of an NFT collection.
      * @dev Modifies the `quantityInStock` field of a collection in the `collections` mapping. This function is intended for internal use only.
-     * @param _id The ID of the collection to update.
+     * @param _collectionAddress The address of the collection to update.
      * @param _newQuantity The new quantity in stock.
      */
-    function _updateQuantity(uint256 _id, uint256 _newQuantity) private {
-        collections[_id].quantityInStock = _newQuantity;
+    function _updateQuantity(address _collectionAddress, uint256 _newQuantity) private {
+        collections[_collectionAddress].quantityInStock = _newQuantity;
     }
 }

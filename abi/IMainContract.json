@@ -2,9 +2,9 @@
   {
     "inputs": [
       {
-        "internalType": "uint256[]",
-        "name": "_ids",
-        "type": "uint256[]"
+        "internalType": "address[]",
+        "name": "_collectionAddresses",
+        "type": "address[]"
       },
       {
         "internalType": "uint256[]",
@@ -20,9 +20,9 @@
   {
     "inputs": [
       {
-        "internalType": "uint256",
-        "name": "_id",
-        "type": "uint256"
+        "internalType": "address",
+        "name": "_collectionAddress",
+        "type": "address"
       },
       {
         "internalType": "uint256",
@@ -38,12 +38,12 @@
   {
     "inputs": [
       {
-        "internalType": "uint256",
-        "name": "_id",
-        "type": "uint256"
+        "internalType": "address",
+        "name": "_collectionAddress",
+        "type": "address"
       }
     ],
-    "name": "getAddressById",
+    "name": "getCollectionOwnerByAddress",
     "outputs": [
       {
         "internalType": "address",
@@ -57,28 +57,9 @@
   {
     "inputs": [
       {
-        "internalType": "uint256",
-        "name": "_id",
-        "type": "uint256"
-      }
-    ],
-    "name": "getOwnerByCollectionId",
-    "outputs": [
-      {
         "internalType": "address",
-        "name": "",
+        "name": "_collectionAddress",
         "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_id",
-        "type": "uint256"
       }
     ],
     "name": "getPrice",
@@ -96,8 +77,32 @@
     "inputs": [
       {
         "internalType": "uint256",
-        "name": "_id",
+        "name": "_indexOfPromo",
         "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "_user",
+        "type": "address"
+      }
+    ],
+    "name": "getPromo",
+    "outputs": [
+      {
+        "internalType": "bytes8",
+        "name": "",
+        "type": "bytes8"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_collectionAddress",
+        "type": "address"
       }
     ],
     "name": "getQuantity",
@@ -109,6 +114,24 @@
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_collectionAddress",
+        "type": "address"
+      },
+      {
+        "internalType": "bytes8",
+        "name": "_code",
+        "type": "bytes8"
+      }
+    ],
+    "name": "redeemCode",
+    "outputs": [],
+    "stateMutability": "payable",
     "type": "function"
   },
   {

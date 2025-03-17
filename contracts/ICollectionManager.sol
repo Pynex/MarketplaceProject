@@ -19,7 +19,6 @@ interface ICollectionManager {
      * @param price The price of each NFT in the collection.
      * @param quantityInStock The number of NFTs currently available in the collection.
      * @param collectionAddress The address of the ERC721 contract for the collection.
-     * @param id The unique ID of the collection.
      */
     struct CollectionInfo {
         string name;
@@ -29,7 +28,6 @@ interface ICollectionManager {
         uint256 price;
         uint256 quantityInStock;
         address collectionAddress;
-        uint256 id;
     }
 
     /**
@@ -61,65 +59,27 @@ interface ICollectionManager {
      * @return CollectionInfo Returns a `CollectionInfo` struct containing the collection's details.
      * @dev This function returns the CollectionInfo struct directly from the collections mapping using the provided ID.
      */
-    function getCollectionById (uint _id) external view returns (CollectionInfo memory);
+    function getCollectionByAddress (address _collectionAddress) external view returns (CollectionInfo memory);
 
-    /**
-     * @notice Retrieves collection information based on the collection address.
-     * @param _collection The address of the ERC721 collection.
-     * @return CollectionInfo Returns a `CollectionInfo` struct containing the collection's details.
-     */
-    // function getCollectionInfoByCollectionAddress(address _collection) external view returns (CollectionInfo memory);
-
-    /**
-     * @notice Retrieves collection information based on the address of the collection owner.
-     * @param _seller The address of the collection owner (seller).
-     * @return CollectionInfo Returns a `CollectionInfo` struct containing the collection's details.
-     */
-    // function getCollectionInfoByAddressOwner(address _seller) external view returns (CollectionInfo memory);
-
-    /**
-     * @notice Redeems a promotional code for a specific collection.
-     * @dev Allows a user to redeem a promo code for a discount or other benefit.
-     * @param _id The ID of the collection.
-     * @param _code The promotional code to redeem.
-     */
-    function redeemCode(uint _id, bytes8 _code) external payable;
 
     /**
      * @notice Changes the quantity in stock for a specific collection.
      * @param _newQuantity The new quantity in stock.
-     * @param _id The ID of the collection.
+     * @param _collectionAddress The address of the collection.
      */
-    function changeQuantityInStock(uint _newQuantity, uint _id) external payable;
+    function changeQuantityInStock(uint _newQuantity, address _collectionAddress) external payable;
 
     /**
      * @notice Changes the price for a specific collection.
      * @param _newPrice The new price.
-     * @param _id The ID of the collection.
+     * @param _collectionAddress The address of the collection.
      */
-    function changePrice(uint _newPrice, uint _id) external payable;
-
-    /**
-     * @notice Retrieves a promotional code for a specific user and index.
-     * @param _indexOfPromo The index of the promo code in the user's list of codes.
-     * @param _user The address of the user.
-     * @return bytes8 The promotional code.
-     */
-    function getPromo(uint256 _indexOfPromo, address _user) external view returns (bytes8);
+    function changePrice(uint _newPrice, address _collectionAddress) external payable;
 
     /**
      * @notice Checks if a collection with a given ID exists.
-     * @param _id The ID of the collection.
+     * @param _collectionAddress The address of the collection.
      * @return bool Returns true if the collection exists, false otherwise.
      */
-    function collectionExist(uint _id) external view returns (bool);
-
-    /**
-     * @notice Generates a promotional code for a user.
-     * @dev  This function is intended for internal use by the main contract. It should not be called directly.
-     * @param _amount The amount of promo codes to generate.
-     * @param _id The ID of the collection.
-     * @param _user The address of the user to generate the promo code for.
-     */
-    function _generatePromoCode(uint _amount, uint _id, address _user) external;
+    function collectionExist(address _collectionAddress) external view returns (bool);
 }

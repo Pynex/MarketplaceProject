@@ -3,36 +3,13 @@
     "inputs": [
       {
         "internalType": "uint256",
-        "name": "_amount",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_id",
-        "type": "uint256"
-      },
-      {
-        "internalType": "address",
-        "name": "_user",
-        "type": "address"
-      }
-    ],
-    "name": "_generatePromoCode",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
         "name": "_newPrice",
         "type": "uint256"
       },
       {
-        "internalType": "uint256",
-        "name": "_id",
-        "type": "uint256"
+        "internalType": "address",
+        "name": "_collectionAddress",
+        "type": "address"
       }
     ],
     "name": "changePrice",
@@ -48,9 +25,9 @@
         "type": "uint256"
       },
       {
-        "internalType": "uint256",
-        "name": "_id",
-        "type": "uint256"
+        "internalType": "address",
+        "name": "_collectionAddress",
+        "type": "address"
       }
     ],
     "name": "changeQuantityInStock",
@@ -61,9 +38,9 @@
   {
     "inputs": [
       {
-        "internalType": "uint256",
-        "name": "_id",
-        "type": "uint256"
+        "internalType": "address",
+        "name": "_collectionAddress",
+        "type": "address"
       }
     ],
     "name": "collectionExist",
@@ -113,12 +90,12 @@
   {
     "inputs": [
       {
-        "internalType": "uint256",
-        "name": "_id",
-        "type": "uint256"
+        "internalType": "address",
+        "name": "_collectionAddress",
+        "type": "address"
       }
     ],
-    "name": "getCollectionById",
+    "name": "getCollectionByAddress",
     "outputs": [
       {
         "components": [
@@ -156,11 +133,6 @@
             "internalType": "address",
             "name": "collectionAddress",
             "type": "address"
-          },
-          {
-            "internalType": "uint256",
-            "name": "id",
-            "type": "uint256"
           }
         ],
         "internalType": "struct ICollectionManager.CollectionInfo",
@@ -169,48 +141,6 @@
       }
     ],
     "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_indexOfPromo",
-        "type": "uint256"
-      },
-      {
-        "internalType": "address",
-        "name": "_user",
-        "type": "address"
-      }
-    ],
-    "name": "getPromo",
-    "outputs": [
-      {
-        "internalType": "bytes8",
-        "name": "",
-        "type": "bytes8"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_id",
-        "type": "uint256"
-      },
-      {
-        "internalType": "bytes8",
-        "name": "_code",
-        "type": "bytes8"
-      }
-    ],
-    "name": "redeemCode",
-    "outputs": [],
-    "stateMutability": "payable",
     "type": "function"
   },
   {

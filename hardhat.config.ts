@@ -3,6 +3,7 @@ import "@nomicfoundation/hardhat-toolbox";
 import * as path from 'path';
 import "hardhat-abi-exporter";
 import 'solidity-coverage';
+import './Tasks/Sample.task';
 
 
 const config: HardhatUserConfig = {
