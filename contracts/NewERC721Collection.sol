@@ -10,11 +10,11 @@ import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
  * @dev in the MainContract we use mint function when user buys product(-s).
  */
 contract NewERC721Collection is ERC721 {
-    uint256 private tokenCounter;
-    string private baseURI;
-    address public mainContract;
-    address private creator;
-    address private platformOwner;
+    uint256 tokenCounter;
+    string baseURI;
+    address public immutable mainContract;
+    address immutable creator;
+    address immutable platformOwner;
 
     /**
     * @dev Constructor for the ERC721NewCollection contract.
@@ -46,7 +46,7 @@ contract NewERC721Collection is ERC721 {
         creator = _creator;
         platformOwner = _platformOwner;
         baseURI = _collectionURI;
-        tokenCounter;
+        tokenCounter = 1;
         mainContract = _mainContract;
     }
 
