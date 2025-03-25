@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 import {ICollectionManager} from "./ICollectionManager.sol";
 import {NewERC721Collection} from "./NewERC721Collection.sol";
 import {Errors} from "./Errors.sol";
-import {MainContract} from "./MainContract.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
