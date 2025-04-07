@@ -1,0 +1,183 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - lcov.info - src/NewERC721Collection.sol</title>
+  <link rel="stylesheet" type="text/css" href="../gcov.css">
+</head>
+
+<body>
+
+          <table width="100%" border=0 cellspacing=0 cellpadding=0>
+            <tr><td class="title">LCOV - code coverage report</td></tr>
+            <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+
+            <tr>
+              <td width="100%">
+                <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="10%" class="headerValue"><a href="../index.html" title="Click to go to top-level">top level</a> - <a href="index.html" title="Click to go to directory src">src</a> - NewERC721Collection.sol<span style="font-size: 80%;"> (source / <a href="NewERC721Collection.sol.func-c.html" title="Click to go to function table">functions</a>)</span></td>
+            <td width="5%"></td>
+            <td width="5%"></td>
+            <td width="5%" class="headerCovTableHead">Coverage</td>
+            <td width="5%" class="headerCovTableHead" title="Covered + Uncovered code">Total</td>
+            <td width="5%" class="headerCovTableHead" title="Exercised code only">Hit</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">lcov.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
+            <td class="headerCovTableEntry">23</td>
+            <td class="headerCovTableEntry">23</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test Date:</td>
+            <td class="headerValue">2025-04-07 10:31:53</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
+            <td class="headerCovTableEntry">7</td>
+            <td class="headerCovTableEntry">7</td>
+          </tr>
+          <tr>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td class="headerItem">Branches:</td>
+            <td class="headerCovTableEntryHi">100.0&nbsp;%</td>
+            <td class="headerCovTableEntry">8</td>
+            <td class="headerCovTableEntry">8</td>
+          </tr>
+                  <tr><td><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+                </table>
+              </td>
+            </tr>
+
+            <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+          </table>
+
+          <table cellpadding=0 cellspacing=0 border=0>
+            <tr>
+              <td><br></td>
+            </tr>
+            <tr>
+              <td>
+<pre class="sourceHeading">             Branch data     Line data    Source code</pre>
+<pre class="source">
+<span id="L1"><span class="lineNum">       1</span>                 :             : // SPDX-License-Identifier: MIT</span>
+<span id="L2"><span class="lineNum">       2</span>                 :             : pragma solidity ^0.8.0;</span>
+<span id="L3"><span class="lineNum">       3</span>                 :             : </span>
+<span id="L4"><span class="lineNum">       4</span>                 :             : import &quot;../lib/openzeppelin-contracts/contracts/utils/Strings.sol&quot;;</span>
+<span id="L5"><span class="lineNum">       5</span>                 :             : import {ERC721} from &quot;../lib/openzeppelin-contracts/contracts/token/ERC721/ERC721.sol&quot;;</span>
+<span id="L6"><span class="lineNum">       6</span>                 :             : // import {IERC721} from &quot;../lib/openzeppelin-contracts/contracts/token/ERC721/IERC721.sol&quot;;</span>
+<span id="L7"><span class="lineNum">       7</span>                 :             : </span>
+<span id="L8"><span class="lineNum">       8</span>                 :             : </span>
+<span id="L9"><span class="lineNum">       9</span>                 :             : /**</span>
+<span id="L10"><span class="lineNum">      10</span>                 :             :  * @title contract that create new NFR collection.</span>
+<span id="L11"><span class="lineNum">      11</span>                 :             :  * @notice this contract use in MainContract.</span>
+<span id="L12"><span class="lineNum">      12</span>                 :             :  * @dev in the MainContract we use mint function when user buys product(-s).</span>
+<span id="L13"><span class="lineNum">      13</span>                 :             :  */</span>
+<span id="L14"><span class="lineNum">      14</span>                 :             : contract NewERC721Collection is ERC721 {</span>
+<span id="L15"><span class="lineNum">      15</span>                 :             :     uint256 tokenCounter;</span>
+<span id="L16"><span class="lineNum">      16</span>                 :             :     string baseURI;</span>
+<span id="L17"><span class="lineNum">      17</span>                 :             :     address public immutable mainContract;</span>
+<span id="L18"><span class="lineNum">      18</span>                 :             :     address immutable creator;</span>
+<span id="L19"><span class="lineNum">      19</span>                 :             :     address immutable platformOwner;</span>
+<span id="L20"><span class="lineNum">      20</span>                 :             : </span>
+<span id="L21"><span class="lineNum">      21</span>                 :             :     /**</span>
+<span id="L22"><span class="lineNum">      22</span>                 :             :     * @dev Constructor for the ERC721NewCollection contract.</span>
+<span id="L23"><span class="lineNum">      23</span>                 :             :     * @param _name The name of the NFT collection.</span>
+<span id="L24"><span class="lineNum">      24</span>                 :             :     * @param _symbol The symbol of the NFT collection.</span>
+<span id="L25"><span class="lineNum">      25</span>                 :             :     * @param _collectionURI The base URI for the NFT metadata.</span>
+<span id="L26"><span class="lineNum">      26</span>                 :             :     * @param _creator The address that created the collection.</span>
+<span id="L27"><span class="lineNum">      27</span>                 :             :     * @param _platformOwner the owner mainContract address.</span>
+<span id="L28"><span class="lineNum">      28</span>                 :             :     * @param _mainContract The address of the main contract that can mint NFTs.</span>
+<span id="L29"><span class="lineNum">      29</span>                 :             :     */</span>
+<span id="L30"><span class="lineNum">      30</span>                 :<span class="tlaGNC">         264 :     constructor(</span></span>
+<span id="L31"><span class="lineNum">      31</span>                 :             :         string memory _name,</span>
+<span id="L32"><span class="lineNum">      32</span>                 :             :         string memory _symbol,</span>
+<span id="L33"><span class="lineNum">      33</span>                 :             :         string memory _collectionURI,</span>
+<span id="L34"><span class="lineNum">      34</span>                 :             :         address _creator,</span>
+<span id="L35"><span class="lineNum">      35</span>                 :             :         address _platformOwner,</span>
+<span id="L36"><span class="lineNum">      36</span>                 :             :         address _mainContract</span>
+<span id="L37"><span class="lineNum">      37</span>                 :             :     ) ERC721(_name, _symbol) {</span>
+<span id="L38"><span class="lineNum">      38</span>         [<span class="tlaGBC" title="Branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="Branch 1 was taken 263 times"> + </span>]:<span class="tlaGNC">         264 :         require(_creator != address(0), &quot;Creator cannot be zero address&quot;);</span></span>
+<span id="L39"><span class="lineNum">      39</span>         [<span class="tlaGBC" title="Branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="Branch 1 was taken 262 times"> + </span>]:<span class="tlaGNC">         263 :         require(</span></span>
+<span id="L40"><span class="lineNum">      40</span>                 :             :             _platformOwner != address(0),</span>
+<span id="L41"><span class="lineNum">      41</span>                 :             :             &quot;Marketplace creator cannot be zero address&quot;</span>
+<span id="L42"><span class="lineNum">      42</span>                 :             :         );</span>
+<span id="L43"><span class="lineNum">      43</span>         [<span class="tlaGBC" title="Branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="Branch 1 was taken 261 times"> + </span>]:<span class="tlaGNC">         262 :         require(</span></span>
+<span id="L44"><span class="lineNum">      44</span>                 :             :             _mainContract != address(0),</span>
+<span id="L45"><span class="lineNum">      45</span>                 :             :             &quot;Main contract cannot be zero address&quot;</span>
+<span id="L46"><span class="lineNum">      46</span>                 :             :         );</span>
+<span id="L47"><span class="lineNum">      47</span>                 :             : </span>
+<span id="L48"><span class="lineNum">      48</span>                 :<span class="tlaGNC">         261 :         creator = _creator;</span></span>
+<span id="L49"><span class="lineNum">      49</span>                 :<span class="tlaGNC">         261 :         platformOwner = _platformOwner;</span></span>
+<span id="L50"><span class="lineNum">      50</span>                 :<span class="tlaGNC">         261 :         baseURI = _collectionURI;</span></span>
+<span id="L51"><span class="lineNum">      51</span>                 :<span class="tlaGNC">         261 :         tokenCounter = 1;</span></span>
+<span id="L52"><span class="lineNum">      52</span>                 :<span class="tlaGNC">         261 :         mainContract = _mainContract;</span></span>
+<span id="L53"><span class="lineNum">      53</span>                 :             :     }</span>
+<span id="L54"><span class="lineNum">      54</span>                 :             : </span>
+<span id="L55"><span class="lineNum">      55</span>                 :             :     /// @notice modifier for mainContract address.</span>
+<span id="L56"><span class="lineNum">      56</span>                 :<span class="tlaGNC">           2 :     modifier onlyMainContract() {</span></span>
+<span id="L57"><span class="lineNum">      57</span>         [<span class="tlaGBC" title="Branch 0 was taken 1 time"> + </span><span class="tlaGBC" title="Branch 1 was taken 1 time"> + </span>]:<span class="tlaGNC">           2 :         require(</span></span>
+<span id="L58"><span class="lineNum">      58</span>                 :             :             msg.sender == mainContract,</span>
+<span id="L59"><span class="lineNum">      59</span>                 :             :             &quot;Only mainContract can call this function&quot;</span>
+<span id="L60"><span class="lineNum">      60</span>                 :             :         );</span>
+<span id="L61"><span class="lineNum">      61</span>                 :             :         _;</span>
+<span id="L62"><span class="lineNum">      62</span>                 :             :     }</span>
+<span id="L63"><span class="lineNum">      63</span>                 :             : </span>
+<span id="L64"><span class="lineNum">      64</span>                 :             :     /// @dev mints NFT to the buyer address, when he reedemed a promo code.</span>
+<span id="L65"><span class="lineNum">      65</span>                 :             :     /// @param _to the buyer address to mint the NFT to.</span>
+<span id="L66"><span class="lineNum">      66</span>                 :<span class="tlaGNC">           2 :     function mint(address _to) external onlyMainContract  {</span></span>
+<span id="L67"><span class="lineNum">      67</span>                 :<span class="tlaGNC">           1 :         uint256 newTokenId = tokenCounter;</span></span>
+<span id="L68"><span class="lineNum">      68</span>                 :<span class="tlaGNC">           1 :         _safeMint(_to, newTokenId);</span></span>
+<span id="L69"><span class="lineNum">      69</span>                 :<span class="tlaGNC">           1 :         tokenCounter++;</span></span>
+<span id="L70"><span class="lineNum">      70</span>                 :             :     }</span>
+<span id="L71"><span class="lineNum">      71</span>                 :             : </span>
+<span id="L72"><span class="lineNum">      72</span>                 :<span class="tlaGNC">           1 :     function setApprovalForAll(address operator, bool approved)</span></span>
+<span id="L73"><span class="lineNum">      73</span>                 :             :         public</span>
+<span id="L74"><span class="lineNum">      74</span>                 :             :         override</span>
+<span id="L75"><span class="lineNum">      75</span>                 :             :     {</span>
+<span id="L76"><span class="lineNum">      76</span>                 :<span class="tlaGNC">           1 :         super.setApprovalForAll(operator, approved);</span></span>
+<span id="L77"><span class="lineNum">      77</span>                 :             :     }</span>
+<span id="L78"><span class="lineNum">      78</span>                 :             : </span>
+<span id="L79"><span class="lineNum">      79</span>                 :             :     /// @dev returns the base URI for the contract.</span>
+<span id="L80"><span class="lineNum">      80</span>                 :<span class="tlaGNC">           1 :     function _baseURI() internal view override returns (string memory) {</span></span>
+<span id="L81"><span class="lineNum">      81</span>                 :<span class="tlaGNC">           1 :         return baseURI;</span></span>
+<span id="L82"><span class="lineNum">      82</span>                 :             :     }</span>
+<span id="L83"><span class="lineNum">      83</span>                 :             : </span>
+<span id="L84"><span class="lineNum">      84</span>                 :<span class="tlaGNC">           1 :     function getBaseURI() public view returns(string memory) {</span></span>
+<span id="L85"><span class="lineNum">      85</span>                 :<span class="tlaGNC">           1 :         string memory URI = _baseURI();return URI;</span></span>
+<span id="L86"><span class="lineNum">      86</span>                 :             :     }</span>
+<span id="L87"><span class="lineNum">      87</span>                 :             : </span>
+<span id="L88"><span class="lineNum">      88</span>                 :             :     /// @dev returns the URI for a given token ID.</span>
+<span id="L89"><span class="lineNum">      89</span>                 :             :     /// @param tokenId the Id of the token</span>
+<span id="L90"><span class="lineNum">      90</span>                 :<span class="tlaGNC">           1 :     function tokenURI(uint256 tokenId)</span></span>
+<span id="L91"><span class="lineNum">      91</span>                 :             :         public</span>
+<span id="L92"><span class="lineNum">      92</span>                 :             :         view</span>
+<span id="L93"><span class="lineNum">      93</span>                 :             :         override</span>
+<span id="L94"><span class="lineNum">      94</span>                 :             :         returns (string memory)</span>
+<span id="L95"><span class="lineNum">      95</span>                 :             :     {</span>
+<span id="L96"><span class="lineNum">      96</span>                 :<span class="tlaGNC">           1 :         return string(abi.encodePacked(baseURI, Strings.toString(tokenId)));</span></span>
+<span id="L97"><span class="lineNum">      97</span>                 :             :     }</span>
+<span id="L98"><span class="lineNum">      98</span>                 :             : }</span>
+        </pre>
+              </td>
+            </tr>
+          </table>
+          <br>
+
+          <table width="100%" border=0 cellspacing=0 cellpadding=0>
+            <tr><td class="ruler"><img src="../glass.png" width=3 height=3 alt=""></td></tr>
+            <tr><td class="versionInfo">Generated by: <a href="https://github.com//linux-test-project/lcov" target="_parent">LCOV version 2.3-1</a></td></tr>
+          </table>
+          <br>
+
+</body>
+</html>
