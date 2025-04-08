@@ -24,17 +24,19 @@ contract MarketPlaceTest is Test,Helper {
         uint amountOfStock
     );
 
-    address[4] public signers = [
+    address[6] public signers = [
         0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266,
         0x70997970C51812dc3A010C7d01b50e0d17dc79C8,
         0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC,
-        0x90F79bf6EB2c4f870365E785982E1f101E93b906
+        0x90F79bf6EB2c4f870365E785982E1f101E93b906,
+        0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65,
+        0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc
     ];
 
     function setUp() public {
         collectionManager = new CollectionManager(signers[0]);
         address cmAddress = address(collectionManager);
-        mainContract = new MainContract(signers[0], 0, cmAddress);
+        mainContract = new MainContract(signers[0], 10, cmAddress);
         vm.prank(signers[0]);
         address mcAddress = address(mainContract);
         collectionManager.setMainContract(mcAddress);
@@ -177,10 +179,11 @@ contract MarketPlaceTest is Test,Helper {
 
     function testMint_Approval_BaseUriAndTokenUri() public {
         vm.startPrank(address(mainContract));
+        string memory URI = "ipfs/...";
         NewERC721Collection collection = new NewERC721Collection(
             "a",
             "XYZ",
-            "ipfs/...",
+            URI,
             msg.sender,
             collectionManager.owner(),
             collectionManager.mainContract()
@@ -202,7 +205,7 @@ contract MarketPlaceTest is Test,Helper {
         console.log(uri);
 
         string memory check = collection.getBaseURI();
-        vm.assertEq(check, "ipfs/...");
+        vm.assertEq(check, URI);
 
         //negative
         vm.stopPrank();
@@ -231,25 +234,135 @@ contract MarketPlaceTest is Test,Helper {
         mainContract.setCollectionManager(newCM);
     }
 
-    function testBuy() public{
-        uint balance = address(this).balance;
-        (address _newCollection, uint _price, uint _amount) = Helper.deployCollection("a", "b", "c", 1 gwei, 10);
-
-
-        console.log(address(this).balance);
-        vm.deal(signers[1], 10 ether);
-        console.log(signers[1].balance);
+    function testBuyAndRedeemCode() public {
         vm.prank(signers[1]);
-        mainContract.buy{value:1 ether}(_newCollection, _amount);
-        console.log(address(this).balance);
+        vm.recordLogs();
+        uint _price = 1 ether;
 
-        // bytes4 selector = bytes4(keccak256("buy(address, uint256)"));
-        // bytes memory data = abi.encodeWithSelector(selector, _newCollection, _quantity);
+        collectionManager.createCollection("classical","CLS","ipfs/...",_price, 100);
 
-        // (bool success, ) = address(mainContract).call{value: 1 ether}(data);
-        // vm.assertTrue(success);
-        uint qBalance = address(this).balance;
-        vm.assertEq(balance+_price*_amount, qBalance);
-        vm.assertEq(mainContract.getQuantity(_newCollection), 0);
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        (address collectionAddress) = abi.decode(entries[0].data,(address));
+
+
+        vm.deal(signers[3], 10 ether);
+        vm.startPrank(signers[3]);
+        mainContract.buy{value:5 ether}(collectionAddress, 1);
+
+        uint expectedBalance3acc = 9 ether;
+        console.log("first account balance after buy:", signers[1].balance);
+        vm.assertEq(signers[3].balance, expectedBalance3acc);
+        uint expectedBalance0acc = _price*10/100; // 10% comission
+        vm.assertEq(signers[0].balance, expectedBalance0acc);
+
+        //redeemcodeTest
+        bytes8 code = 0xc91ca672d41b1783;
+        // vm.expectRevert();
+        mainContract.redeemCode(collectionAddress, code);
+
+        //negative reddemcodeTest
+        
+        //negative
+
+        vm.expectRevert(abi.encodeWithSelector(Errors.notEnoughProductsInStock.selector, 1000, 99));
+        mainContract.buy{value:9 ether}(collectionAddress, 1000);
+
+        vm.expectRevert(abi.encodeWithSelector(Errors.NotEnoughFunds.selector, 1 ether, 50000));
+        mainContract.buy{value: 50000}(collectionAddress, 1);
     }
+
+    function testBatchBuy() public {
+        vm.startPrank(signers[1]);
+        vm.recordLogs();
+        uint _price0 = 1 ether;
+
+        collectionManager.createCollection("classical","CLS","ipfs/...",_price0, 100);
+
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        (address collectionAddress0) = abi.decode(entries[0].data,(address));
+
+        vm.startPrank(signers[2]);
+        vm.recordLogs();
+        uint _price1 = 3 ether;
+
+        collectionManager.createCollection("Pepe","Pepe","ipfs/...",_price1, 100);
+
+        Vm.Log[] memory entries1 = vm.getRecordedLogs();
+        (address collectionAddress1) = abi.decode(entries1[0].data,(address));
+        console.log(collectionAddress1);
+
+        address[] memory transmittedAddresses = new address[](2);
+        transmittedAddresses[0] = collectionAddress0;
+        transmittedAddresses[1] = collectionAddress1;
+        
+        uint[] memory transmittedNums = new uint256[](2);
+        transmittedNums[0] = 1;
+        transmittedNums[1] = 3;
+
+        console.log(signers[3].balance);
+        vm.deal(signers[3], 15 ether);
+        vm.startPrank(signers[3]);
+        mainContract.batchBuy{value:12 ether}(transmittedAddresses, transmittedNums);
+        vm.assertEq(signers[3].balance, 5 ether);
+        uint exQuantiti0 = mainContract.getQuantity(collectionAddress0);
+        vm.assertEq(exQuantiti0, 99);
+
+        uint exQuantiti1 = mainContract.getQuantity(collectionAddress1);
+        vm.assertEq(exQuantiti1, 97);
+
+        //negative 
+
+        vm.deal(signers[4], 15 ether);
+        vm.startPrank(signers[4]);
+        vm.expectRevert(abi.encodeWithSelector(Errors.NotEnoughFunds.selector, 10 ether, 1 ether));
+        mainContract.batchBuy{value:1 ether}(transmittedAddresses, transmittedNums);
+
+        address[] memory transmittedAddressesMissmatch = new address[](2);
+        transmittedAddressesMissmatch[0] = collectionAddress0;
+        transmittedAddressesMissmatch[1] = collectionAddress1;
+        
+        uint[] memory transmittedNumsMissmatch = new uint256[](3);
+        transmittedNumsMissmatch[0] = 1;
+        transmittedNumsMissmatch[1] = 3;
+        transmittedNumsMissmatch[2] = 3;
+
+        vm.expectRevert(abi.encodeWithSelector(Errors.arraysMisMatch.selector,
+        transmittedAddressesMissmatch.length, transmittedNumsMissmatch.length));
+        // vm.expectRevert();
+        mainContract.batchBuy{value:1 ether}(transmittedAddressesMissmatch, transmittedNumsMissmatch);
+
+
+        address[] memory transmittedAddressesOver25 = new address[](30);
+        uint[] memory transmittedNumsOver25 = new uint256[](30);
+
+        vm.expectRevert(abi.encodeWithSelector(Errors.tooManyProductsToBuy.selector,
+        25, transmittedNumsOver25.length));
+
+        mainContract.batchBuy{value:1 ether}(transmittedAddressesOver25, transmittedNumsOver25);
+
+        address[] memory transmittedAddressesIncQuan = new address[](1);
+        transmittedAddressesIncQuan[0] = collectionAddress0;
+        uint[] memory transmittedNumsIncQuan = new uint256[](1);
+        transmittedNumsIncQuan[0] = 0;
+
+        vm.expectRevert(abi.encodeWithSelector(Errors.incorrectQuantity.selector, 1, 0));
+        mainContract.batchBuy{value:1 ether}(transmittedAddressesIncQuan, transmittedNumsIncQuan);
+
+        vm.deal(signers[5], 15000 ether);
+        vm.startPrank(signers[5]);
+
+        address[] memory transmittedAddressesOverQuan = new address[](1);
+        transmittedAddressesOverQuan[0] = collectionAddress1;
+        uint[] memory transmittedNumsOverQuan = new uint256[](1);
+        transmittedNumsOverQuan[0] = 101;
+
+        uint exQuantity = mainContract.getQuantity(collectionAddress1);
+        vm.expectRevert(abi.encodeWithSelector(Errors.notEnoughProductsInStock.selector, 101, exQuantity));
+        mainContract.batchBuy{value:500 ether}(transmittedAddressesOverQuan, transmittedNumsOverQuan);
+    }
+
+
+    // function testGetQuantity() public {
+    //     mainContract.getQuantity(address(0));
+    // }
 }

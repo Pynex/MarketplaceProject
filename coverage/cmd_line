@@ -1,1 +1,1 @@
-genhtml lcov.info --branch-coverage --output-dir coverage
+genhtml --ignore-errors inconsistent,corrupt lcov.info --branch-coverage --output-dir coverage

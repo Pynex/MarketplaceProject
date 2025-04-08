@@ -39,13 +39,13 @@ interface IMainContract {
      */
     function redeemCode(address _collectionAddress, bytes8 _code) external payable;
 
-    /**
-     * @notice Retrieves a promotional code for a specific user and index.
-     * @param _indexOfPromo The index of the promo code in the user's list of codes.
-     * @param _user The address of the user.
-     * @return bytes8 The promotional code.
-     */
-    function getPromo(uint256 _indexOfPromo, address _user) external view returns (bytes8);
+    // /**
+    //  * @notice Retrieves a promotional code for a specific user and index.
+    //  * @param _indexOfPromo The index of the promo code in the user's list of codes.
+    //  * @param _user The address of the user.
+    //  * @return bytes8 The promotional code.
+    //  */
+    // function getPromo(uint256 _indexOfPromo, address _user) external view returns (bytes8);
 
     /**
      * @notice Retrieves the price of an NFT in a specific collection.

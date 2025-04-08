@@ -149,4 +149,6 @@ contract Errors {
      * @param mainContractAddress Main Contract Address
      */
     error ZeroMainContractAddress(address mainContractAddress);
+
+    error tooManyProductsToBuy(uint max, uint currentProductsToBuy);
 }

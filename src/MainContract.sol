@@ -105,8 +105,9 @@ contract MainContract is IMainContract, Ownable, ReentrancyGuard , Errors{
         if (msg.value > totalPrice) {
             payable(msg.sender).transfer(msg.value - totalPrice);
         }
-        // _generatePromoCode(_quantity, _collectionAddress, msg.sender);
-        // collectionManager.changeQuantityInStock(cQuantity-_quantity, _collectionAddress);
+
+        _generatePromoCode(_quantity, _collectionAddress, msg.sender);
+        collectionManager.changeQuantityInStock(cQuantity-_quantity, _collectionAddress);
 
         // Transfer funds for seller and comission for owner.
         payable(getCollectionOwnerByAddress(_collectionAddress)).transfer(fundsForSeller);
@@ -118,15 +119,26 @@ contract MainContract is IMainContract, Ownable, ReentrancyGuard , Errors{
     /**
      *  @inheritdoc IMainContract
      */
-    function batchBuy (address[] calldata _collectionAddresses, uint256[] calldata _quantities) external payable nonReentrant {
-        uint ids = _collectionAddresses.length;
+    function batchBuy (address[] memory _collectionAddresses, uint256[] memory _quantities) external payable nonReentrant {
+        uint addresses = _collectionAddresses.length;
         uint quants = _quantities.length;
-        require(_collectionAddresses.length == _quantities.length, arraysMisMatch(ids, quants));
+
+        require(_collectionAddresses.length == _quantities.length, arraysMisMatch(addresses, quants));
         // Limitation of the number of products in a transaction
-        require(_collectionAddresses.length <= 25);
+        require(_collectionAddresses.length <= 25, tooManyProductsToBuy(25, addresses));
+
+        
+        uint totalPrice = 0;
+        for (uint i = 0; i < _quantities.length; ++i) {
+            uint quantiti = _quantities[i];
+            address collectionAddress = _collectionAddresses[i];
+
+            uint price = (getPrice(collectionAddress))  * quantiti;
+            totalPrice += price;
+        }
+        require(msg.value >= totalPrice, NotEnoughFunds(totalPrice, msg.value));
 
         // Initialize the total price
-        uint totalPrice = 0;
         for(uint i = 0; i < _collectionAddresses.length; i++) {
             uint quantiti = _quantities[i];
             address collectionAddress = _collectionAddresses[i];
@@ -135,7 +147,6 @@ contract MainContract is IMainContract, Ownable, ReentrancyGuard , Errors{
             require(cQuantity >= quantiti, notEnoughProductsInStock(quantiti, cQuantity));
 
             uint price = (getPrice(collectionAddress))  * quantiti;
-            totalPrice += price;
 
             _generatePromoCode(quantiti, collectionAddress, msg.sender);
             collectionManager.changeQuantityInStock(getQuantity(collectionAddress)-quantiti, collectionAddress);
@@ -146,10 +157,10 @@ contract MainContract is IMainContract, Ownable, ReentrancyGuard , Errors{
             // Emit an event for the product purchased
             emit productPurchased(msg.sender, collectionAddress,  price, _quantities[i]);
         }
-        require(msg.value >= totalPrice, NotEnoughFunds(totalPrice, msg.value));
+        // require(msg.value >= totalPrice, NotEnoughFunds(totalPrice, msg.value));
         uint256 fundsForSeller = totalPrice - (totalPrice * commission) / 100;
         uint amountOfCommission = totalPrice - fundsForSeller;
-        
+
         // Refund excess funds to the buyer (if any).
         if (msg.value > totalPrice) {
             payable(msg.sender).transfer(msg.value - totalPrice);
@@ -268,7 +279,7 @@ contract MainContract is IMainContract, Ownable, ReentrancyGuard , Errors{
         
         for (uint i = 0; i < _amount ; i++) {
         bytes8 random = bytes8(
-            keccak256(abi.encode((blockhash(block.number - i)),block.timestamp,counter,msg.sender,collectionAddress, i, tx.origin,
+            keccak256(abi.encode((blockhash(block.number)),block.timestamp,counter,msg.sender,collectionAddress, i, tx.origin,
             block.prevrandao)));
         uniqPromoForUser[_user].push(random);
         codesCounter[msg.sender]++;
@@ -280,22 +291,22 @@ contract MainContract is IMainContract, Ownable, ReentrancyGuard , Errors{
     //  get functions
     //////////////////////////////////////////////////////
 
-    /**
-     *  @inheritdoc IMainContract
-     */
-    function getPromo(uint256 _indexOfPromo, address _user)
-        public
-        view
-        onlyOwner
-        returns (bytes8)
-    {
-        require(_user != address(0), incorrectAddress(address(0)));
-        require(
-            uniqPromoForUser[_user][_indexOfPromo] != bytes8(0),
-            incorrectIndex(bytes8(0), false)
-        );
-        return (uniqPromoForUser[_user][_indexOfPromo]);
-    }
+    // /**
+    //  *  @inheritdoc IMainContract
+    //  */
+    // function getPromo(uint256 _indexOfPromo, address _user)
+    //     public
+    //     view
+    //     onlyOwner
+    //     returns (bytes8)
+    // {
+    //     require(_user != address(0), incorrectAddress(address(0)));
+    //     require(
+    //         uniqPromoForUser[_user][_indexOfPromo] != bytes8(0),
+    //         incorrectIndex(bytes8(0), false)
+    //     );
+    //     return (uniqPromoForUser[_user][_indexOfPromo]);
+    // }
 
     /**
      *  @inheritdoc IMainContract
