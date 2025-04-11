@@ -244,6 +244,26 @@ contract MarketPlaceTest is Test,Helper {
         Vm.Log[] memory entries = vm.getRecordedLogs();
         (address collectionAddress) = abi.decode(entries[0].data,(address));
 
+        uint price = mainContract.getPrice(collectionAddress);
+        vm.assertEq(price, 1 ether);
+
+        uint quantity = mainContract.getQuantity(collectionAddress);
+        vm.assertEq(quantity, 100);
+
+        address awaitOwner = mainContract.getCollectionOwnerByAddress(collectionAddress);
+        vm.assertEq(awaitOwner, signers[1]);
+
+        //
+
+        vm.startPrank(address(0));
+        vm.deal(address(0), 17 ether);
+        vm.expectRevert(abi.encodeWithSelector(Errors.incorrectAddress.selector, address(0)));
+        mainContract.buy(collectionAddress, 0);
+        vm.stopPrank();
+
+        vm.expectRevert(abi.encodeWithSelector(Errors.incorrectQuantity.selector, 1, 0));
+        mainContract.buy(collectionAddress, 0);
+
 
         vm.deal(signers[3], 10 ether);
         vm.startPrank(signers[3]);
@@ -257,11 +277,23 @@ contract MarketPlaceTest is Test,Helper {
 
         //redeemcodeTest
         bytes8 code = 0xc91ca672d41b1783;
+        bytes8 incorrectCode = 0x4a7b2cf9d3e15a8b;
         // vm.expectRevert();
         mainContract.redeemCode(collectionAddress, code);
 
         //negative reddemcodeTest
-        
+
+        vm.expectRevert(abi.encodeWithSelector(Errors.collectionNotFound.selector, false));
+        mainContract.redeemCode(address(0),code);
+
+        // vm.expectRevert(abi.encodeWithSelector(Errors.incorrectCollectionAddress.selector, address(mainContract), false)); invalidPromoCode
+        vm.expectRevert(abi.encodeWithSelector(Errors.invalidPromoCode.selector, false));
+        mainContract.redeemCode(collectionAddress,incorrectCode);
+
+        // vm.expectRevert();
+        // mainContract.redeemCode(collectionAddress,incorrectCode);
+
+
         //negative
 
         vm.expectRevert(abi.encodeWithSelector(Errors.notEnoughProductsInStock.selector, 1000, 99));
@@ -360,9 +392,4 @@ contract MarketPlaceTest is Test,Helper {
         vm.expectRevert(abi.encodeWithSelector(Errors.notEnoughProductsInStock.selector, 101, exQuantity));
         mainContract.batchBuy{value:500 ether}(transmittedAddressesOverQuan, transmittedNumsOverQuan);
     }
-
-
-    // function testGetQuantity() public {
-    //     mainContract.getQuantity(address(0));
-    // }
 }

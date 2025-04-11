@@ -180,11 +180,12 @@ contract MainContract is IMainContract, Ownable, ReentrancyGuard , Errors{
         NewERC721Collection collection = NewERC721Collection(_collectionAddress);
 
         // Check if mainContract is valid.
-        require(
-            address(this) == collection.mainContract(),
-            incorrectCollectionAddress(address(this), collection.mainContract(), false)
-        );
+        // require(
+        //     address(this) == collection.mainContract(),
+        //     incorrectCollectionAddress(address(this), collection.mainContract(), false)
+        // );
         // Check if promo code is valud.
+
         require(_isPromoValid(_code) == true, invalidPromoCode(false));
 
         // Mint the NFT.
@@ -221,15 +222,15 @@ contract MainContract is IMainContract, Ownable, ReentrancyGuard , Errors{
      * @param _promoCode The promotional code to delete.
      */
     function _deletePromoCode(address _user, bytes8 _promoCode) internal {
-        require(_user != address(0), incorrectAddress(address(0)));
-        (uint256 _index, bool status) = _findIndexByUserAddress(
+        // require(_user != address(0), incorrectAddress(address(0)));
+        (uint256 _index, ) = _findIndexByUserAddress(
             _user,
             _promoCode
         );
 
-        if (!status) {
-            revert promoCodeNotFound(false);
-        }
+        // if (!status) {
+        //     revert promoCodeNotFound(false);
+        // }
 
         // Swap the promo code to be deleted with the last element in the array
         uniqPromoForUser[_user][_index] = uniqPromoForUser[_user][
